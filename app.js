@@ -12,7 +12,7 @@ const WORKER_URL = "https://haulintel-api.truckinflorida.workers.dev";
   // "haulintel_api" OR ?api=https://your-worker.workers.dev
   // ---------------------------------------------------------------------------
   // Live Grok proxy (Cloudflare). Never put XAI_API_KEY in this file.
-  const WORKER_URL = 'https://haulintel-api.haulintel-tf.workers.dev';
+ 
   const DEFAULT_API_BASE = WORKER_URL;
   let API_BASE = resolveApiBase();
   let lastResearchedCompany = '';
