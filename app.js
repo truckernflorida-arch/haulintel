@@ -11,8 +11,9 @@
   // After you deploy the Worker, set the URL below OR in localStorage key
   // "haulintel_api" OR ?api=https://your-worker.workers.dev
   // ---------------------------------------------------------------------------
-  // Live Grok proxy (Cloudflare Pages Functions). Never put XAI_API_KEY here.
-  const DEFAULT_API_BASE = 'https://haulintel.pages.dev';
+  const WORKER_URL = 'https://haulintel-api.truckinflorida.workers.dev';
+  // Fallback if WORKER_URL is unset; still never put XAI_API_KEY here.
+  const DEFAULT_API_BASE = WORKER_URL || 'https://haulintel.pages.dev';
   let API_BASE = resolveApiBase();
   let lastResearchedCompany = '';
   let chatHistory = [];
@@ -34,11 +35,13 @@
     if (typeof window.HAULINTEL_API === 'string' && window.HAULINTEL_API) {
       return window.HAULINTEL_API.replace(/\/$/, '');
     }
+    // Prefer WORKER_URL for live Grok proxy
+    if (WORKER_URL) return WORKER_URL.replace(/\/$/, '');
     return (DEFAULT_API_BASE || '').replace(/\/$/, '');
   }
 
   function isLiveConfigured() {
-    return Boolean(API_BASE);
+    return Boolean(API_BASE || WORKER_URL);
   }
 
   // ---------------------------------------------------------------------------
@@ -610,7 +613,7 @@
 
   async function fetchLiveResearch(companyName) {
     if (!isLiveConfigured()) return null;
-    const res = await fetch(API_BASE + '/api/research', {
+    const res = await fetch(WORKER_URL + '/api/research', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ company: companyName }),
@@ -626,7 +629,7 @@
 
   async function fetchLiveChat(message, companyHint) {
     if (!isLiveConfigured()) return null;
-    const res = await fetch(API_BASE + '/api/chat', {
+    const res = await fetch(WORKER_URL + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
