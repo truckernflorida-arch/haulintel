@@ -11,7 +11,7 @@
   // After you deploy the Worker, set the URL below OR in localStorage key
   // "haulintel_api" OR ?api=https://your-worker.workers.dev
   // ---------------------------------------------------------------------------
-  const DEFAULT_API_BASE = ''; // e.g. 'https://haulintel-api.YOUR_SUBDOMAIN.workers.dev'
+  const DEFAULT_API_BASE = 'https://haulintel-api.haulintel-tf.workers.dev';
   let API_BASE = resolveApiBase();
   let lastResearchedCompany = '';
   let chatHistory = [];
