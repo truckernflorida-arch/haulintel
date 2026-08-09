@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="HaulIntel — Free AI company research for CDL truck drivers. Check pay, home time, equipment, dispatch, and safety before you sign on." />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="color-scheme" content="dark" />
+  <title>HaulIntel — Research Trucking Companies Before You Sign On</title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="HaulIntel — Carrier Research for Drivers" />
+  <meta property="og:description" content="Free AI briefings on pay, home time, equipment, dispatch, and safety. Built for CDL drivers." />
+  <meta property="og:type" content="website" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink: {
+              950: '#070b14',
+              900: '#0b1220',
+              800: '#111a2e',
+              700: '#1a2744',
+              600: '#243356',
+            },
+            steel: {
+              400: '#94a3b8',
+              300: '#cbd5e1',
+              200: '#e2e8f0',
+            },
+            amber: {
+              glow: '#f59e0b',
+              soft: '#fbbf24',
+            },
+            good: '#22c55e',
+            warn: '#eab308',
+            bad: '#ef4444',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+            display: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            glow: '0 0 40px rgba(245, 158, 11, 0.12)',
+            card: '0 4px 24px rgba(0, 0, 0, 0.35)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    html { background: #070b14; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: #070b14;
+      color: #e2e8f0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Subtle grid background */
+    .bg-grid {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* Gradient orbs */
+    .orb {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(80px);
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    /* Rating badge colors */
+    .badge-good { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); }
+    .badge-avg  { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35); }
+    .badge-bad  { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+    .badge-warn { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.35); }
+
+    /* Chat bubbles */
+    .chat-user {
+      background: linear-gradient(135deg, #1e3a5f 0%, #1a2f4a 100%);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .chat-bot {
+      background: #111a2e;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    /* Smooth section fade-in */
+    .fade-in {
+      animation: fadeIn 0.35s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Loading skeleton pulse */
+    .pulse-bar {
+      animation: pulseBar 1.2s ease-in-out infinite;
+    }
+    @keyframes pulseBar {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+    }
+
+    /* Custom scrollbar for chat */
+    .chat-scroll::-webkit-scrollbar { width: 6px; }
+    .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: #243356; border-radius: 3px; }
+
+    /* Sticky header blur */
+    .header-blur {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(7, 11, 20, 0.85);
+    }
+
+    /* Focus ring for a11y */
+    .focus-ring:focus {
+      outline: 2px solid #f59e0b;
+      outline-offset: 2px;
+    }
+    .focus-ring:focus:not(:focus-visible) { outline: none; }
+    .focus-ring:focus-visible {
+      outline: 2px solid #f59e0b;
+      outline-offset: 2px;
+    }
+
+    /* Mobile nav drawer */
+    .nav-drawer {
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .nav-drawer.closed {
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Score meter */
+    .score-ring {
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <!-- ========== DEMO BANNER ========== -->
+  <div id="demo-banner" class="bg-amber-500/10 border-b border-amber-500/25 text-amber-100/90 text-center text-sm px-4 py-2.5 relative z-50">
+    <span class="font-medium text-amber-soft">Demo mode</span>
+    <span class="hidden sm:inline"> — Sample data only. Live Grok-powered research is coming soon.</span>
+    <span class="sm:hidden"> — Sample data. Live AI coming soon.</span>
+    <button type="button" id="dismiss-banner" class="ml-2 text-amber-200/70 hover:text-amber-100 underline text-xs" aria-label="Dismiss demo notice">Dismiss</button>
+  </div>
+
+  <!-- ========== STICKY HEADER ========== -->
+  <header class="sticky top-0 z-40 header-blur border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#home" class="flex items-center gap-2.5 group focus-ring rounded-lg">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 shadow-glow text-ink-950 font-extrabold text-sm tracking-tight">HI</span>
+        <span class="font-bold text-lg tracking-tight text-white group-hover:text-amber-soft transition-colors">
+          Haul<span class="text-amber-glow">Intel</span>
+        </span>
+      </a>
+
+      <!-- Desktop nav -->
+      <nav class="hidden md:flex items-center gap-1" aria-label="Main">
+        <a href="#home" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-steel-400 hover:text-white hover:bg-white/5 transition-colors">Home</a>
+        <a href="#research" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-steel-400 hover:text-white hover:bg-white/5 transition-colors">Research</a>
+        <a href="#chat" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-steel-400 hover:text-white hover:bg-white/5 transition-colors">Ask AI</a>
+        <a href="#about" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-steel-400 hover:text-white hover:bg-white/5 transition-colors">About</a>
+        <a href="#research" class="ml-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-ink-950 text-sm font-semibold transition-colors shadow-glow">
+          Check a company
+        </a>
+      </nav>
+
+      <!-- Mobile menu button -->
+      <button type="button" id="menu-btn" class="md:hidden p-2 rounded-lg text-steel-300 hover:bg-white/5 focus-ring" aria-label="Open menu" aria-expanded="false">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile drawer -->
+  <div id="nav-drawer" class="nav-drawer closed fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Mobile menu">
+    <div class="absolute inset-0 bg-black/60" id="nav-overlay"></div>
+    <div class="absolute right-0 top-0 bottom-0 w-72 max-w-[85vw] bg-ink-900 border-l border-white/10 p-6 flex flex-col shadow-card">
+      <div class="flex items-center justify-between mb-8">
+        <span class="font-bold text-white">Menu</span>
+        <button type="button" id="menu-close" class="p-2 rounded-lg text-steel-400 hover:bg-white/5 focus-ring" aria-label="Close menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="flex flex-col gap-1" aria-label="Mobile">
+        <a href="#home" class="mobile-nav-link px-4 py-3 rounded-lg text-base font-medium text-steel-200 hover:bg-white/5">Home</a>
+        <a href="#research" class="mobile-nav-link px-4 py-3 rounded-lg text-base font-medium text-steel-200 hover:bg-white/5">Research</a>
+        <a href="#chat" class="mobile-nav-link px-4 py-3 rounded-lg text-base font-medium text-steel-200 hover:bg-white/5">Ask AI</a>
+        <a href="#about" class="mobile-nav-link px-4 py-3 rounded-lg text-base font-medium text-steel-200 hover:bg-white/5">About</a>
+      </nav>
+      <a href="#research" class="mobile-nav-link mt-6 text-center px-4 py-3 rounded-lg bg-amber-500 text-ink-950 font-semibold">Check a company</a>
+    </div>
+  </div>
+
+  <main>
+    <!-- ========== HERO / HOME ========== -->
+    <section id="home" class="relative overflow-hidden bg-grid">
+      <div class="orb w-72 h-72 bg-amber-500/20 -top-20 -left-20"></div>
+      <div class="orb w-96 h-96 bg-blue-600/10 top-40 -right-32"></div>
+
+      <div class="relative max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24">
+        <div class="max-w-3xl mx-auto text-center">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink-800 border border-white/10 text-xs font-medium text-steel-300 mb-6">
+            <span class="w-1.5 h-1.5 rounded-full bg-good animate-pulse"></span>
+            Free for drivers · No recruiter BS
+          </div>
+
+          <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight mb-5">
+            Know the carrier
+            <span class="text-amber-glow">before you sign.</span>
+          </h1>
+
+          <p class="text-base sm:text-lg text-steel-400 max-w-xl mx-auto mb-8 leading-relaxed">
+            HaulIntel gives you a straight AI briefing on pay accuracy, home time, equipment, dispatch, safety, and what drivers are actually saying — so you don’t find out the hard way.
+          </p>
+
+          <!-- Hero search -->
+          <form id="hero-search-form" class="relative max-w-xl mx-auto mb-4" autocomplete="off">
+            <label for="hero-search" class="sr-only">Search trucking company</label>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:shadow-card sm:rounded-xl sm:overflow-hidden sm:border sm:border-white/10 sm:bg-ink-800/80">
+              <div class="relative flex-1">
+                <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-steel-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                  type="search"
+                  id="hero-search"
+                  name="q"
+                  placeholder="Type a company name…"
+                  class="w-full pl-11 pr-4 py-3.5 sm:py-4 bg-ink-800 border border-white/10 sm:border-0 rounded-xl sm:rounded-none text-white placeholder-steel-400 text-base focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  enterkeyhint="search"
+                />
+              </div>
+              <button type="submit" class="px-6 py-3.5 sm:py-4 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-ink-950 font-semibold rounded-xl sm:rounded-none transition-colors focus-ring">
+                Research
+              </button>
+            </div>
+            <p class="mt-3 text-xs text-steel-400">
+              Try:
+              <button type="button" class="example-company text-amber-soft/90 hover:text-amber-soft underline-offset-2 hover:underline mx-0.5" data-name="Horizon Freight Lines">Horizon Freight</button> ·
+              <button type="button" class="example-company text-amber-soft/90 hover:text-amber-soft underline-offset-2 hover:underline mx-0.5" data-name="Iron Route Logistics">Iron Route</button> ·
+              <button type="button" class="example-company text-amber-soft/90 hover:text-amber-soft underline-offset-2 hover:underline mx-0.5" data-name="Patriot Lease Express">Patriot Lease</button>
+            </p>
+          </form>
+
+          <!-- Trust row -->
+          <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs sm:text-sm text-steel-400">
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-good" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              100% free for drivers
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-amber-glow" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/></svg>
+              Powered by Grok (soon)
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-steel-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              No recruiter access
+            </span>
+          </div>
+        </div>
+
+        <!-- How it works mini -->
+        <div class="mt-16 sm:mt-20 grid sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          <div class="rounded-2xl bg-ink-800/60 border border-white/5 p-5 sm:p-6">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-soft flex items-center justify-center font-bold text-sm mb-3">1</div>
+            <h3 class="font-semibold text-white mb-1.5">Search a company</h3>
+            <p class="text-sm text-steel-400 leading-relaxed">Type the legal name or DBA. Works on your phone at a fuel stop.</p>
+          </div>
+          <div class="rounded-2xl bg-ink-800/60 border border-white/5 p-5 sm:p-6">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-soft flex items-center justify-center font-bold text-sm mb-3">2</div>
+            <h3 class="font-semibold text-white mb-1.5">Get the briefing</h3>
+            <p class="text-sm text-steel-400 leading-relaxed">Pay, home time, equipment, dispatch, FMCSA notes, and driver sentiment — plain English.</p>
+          </div>
+          <div class="rounded-2xl bg-ink-800/60 border border-white/5 p-5 sm:p-6">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-soft flex items-center justify-center font-bold text-sm mb-3">3</div>
+            <h3 class="font-semibold text-white mb-1.5">Ask follow-ups</h3>
+            <p class="text-sm text-steel-400 leading-relaxed">Chat like you’re texting a veteran who did the research for you.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== RESEARCH ========== -->
+    <section id="research" class="border-t border-white/5 bg-ink-950">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Company research</h2>
+            <p class="mt-1 text-steel-400 text-sm sm:text-base">Demo briefings for sample carriers. Search one below.</p>
+          </div>
+          <p class="text-xs text-amber-soft/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 self-start sm:self-auto">
+            Sample data · Live Grok research coming soon
+          </p>
+        </div>
+
+        <!-- Research search bar -->
+        <form id="research-search-form" class="mb-6" autocomplete="off">
+          <label for="research-search" class="sr-only">Company name</label>
+          <div class="flex flex-col sm:flex-row gap-2 max-w-2xl">
+            <div class="relative flex-1">
+              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-steel-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input
+                type="search"
+                id="research-search"
+                placeholder="e.g. Horizon Freight Lines"
+                class="w-full pl-11 pr-4 py-3 bg-ink-800 border border-white/10 rounded-xl text-white placeholder-steel-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/40"
+                list="company-suggestions"
+              />
+              <datalist id="company-suggestions"></datalist>
+            </div>
+            <button type="submit" class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-ink-950 font-semibold rounded-xl transition-colors focus-ring whitespace-nowrap">
+              Get briefing
+            </button>
+          </div>
+        </form>
+
+        <!-- Quick pick chips -->
+        <div class="flex flex-wrap gap-2 mb-8" id="company-chips" aria-label="Sample companies"></div>
+
+        <!-- Loading state -->
+        <div id="research-loading" class="hidden rounded-2xl bg-ink-800/80 border border-white/5 p-6 sm:p-8 mb-6" aria-live="polite" aria-busy="true">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin"></div>
+            <p class="text-steel-300 font-medium">Pulling briefing…</p>
+          </div>
+          <div class="space-y-3">
+            <div class="h-4 bg-ink-700 rounded pulse-bar w-3/4"></div>
+            <div class="h-4 bg-ink-700 rounded pulse-bar w-full"></div>
+            <div class="h-4 bg-ink-700 rounded pulse-bar w-5/6"></div>
+            <div class="h-4 bg-ink-700 rounded pulse-bar w-2/3"></div>
+          </div>
+        </div>
+
+        <!-- Empty / not found -->
+        <div id="research-empty" class="rounded-2xl border border-dashed border-white/10 bg-ink-800/30 p-8 sm:p-12 text-center">
+          <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-ink-800 border border-white/5 flex items-center justify-center">
+            <svg class="w-7 h-7 text-steel-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Search a company to see a briefing</h3>
+          <p class="text-sm text-steel-400 max-w-md mx-auto">In this demo, pick one of the sample carriers above. Live AI lookup for any DOT number or name is on the roadmap.</p>
+        </div>
+
+        <div id="research-notfound" class="hidden rounded-2xl border border-white/10 bg-ink-800/50 p-8 text-center fade-in">
+          <h3 class="text-lg font-semibold text-white mb-2">No demo data for that name</h3>
+          <p class="text-sm text-steel-400 mb-4">This build only includes sample carriers. Try one of the chips, or ask about them in <a href="#chat" class="text-amber-soft hover:underline">Ask AI</a>.</p>
+        </div>
+
+        <!-- Result card -->
+        <article id="research-result" class="hidden fade-in" aria-live="polite"></article>
+      </div>
+    </section>
+
+    <!-- ========== CHAT ========== -->
+    <section id="chat" class="border-t border-white/5 bg-ink-900/50">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div class="mb-6 sm:mb-8">
+          <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Ask HaulIntel</h2>
+          <p class="mt-1 text-steel-400 text-sm sm:text-base">Plain-language follow-ups — demo answers, driver-to-driver tone.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 bg-ink-950 shadow-card overflow-hidden flex flex-col max-w-3xl mx-auto" style="min-height: 420px; max-height: min(70vh, 640px);">
+          <!-- Chat header -->
+          <div class="flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-white/5 bg-ink-800/50">
+            <span class="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-ink-950 font-bold text-xs">AI</span>
+            <div class="min-w-0">
+              <p class="font-semibold text-white text-sm">HaulIntel Assistant</p>
+              <p class="text-xs text-steel-400 truncate">Demo chat · Sample answers only</p>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <div id="chat-messages" class="flex-1 overflow-y-auto chat-scroll p-4 sm:p-5 space-y-4" role="log" aria-live="polite" aria-relevant="additions"></div>
+
+          <!-- Suggested questions -->
+          <div id="chat-suggestions" class="px-4 sm:px-5 pb-2 flex flex-wrap gap-2 border-t border-white/5 pt-3 bg-ink-950">
+            <!-- filled by JS -->
+          </div>
+
+          <!-- Input -->
+          <form id="chat-form" class="p-3 sm:p-4 border-t border-white/5 bg-ink-900/80 flex gap-2">
+            <label for="chat-input" class="sr-only">Your question</label>
+            <input
+              type="text"
+              id="chat-input"
+              placeholder="Ask about pay, home time, lease deals…"
+              class="flex-1 min-w-0 px-4 py-3 bg-ink-800 border border-white/10 rounded-xl text-white placeholder-steel-400 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              autocomplete="off"
+              maxlength="500"
+            />
+            <button type="submit" id="chat-send" class="shrink-0 px-4 sm:px-5 py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-ink-950 font-semibold rounded-xl transition-colors focus-ring" aria-label="Send message">
+              <span class="hidden sm:inline">Send</span>
+              <svg class="sm:hidden w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== ABOUT ========== -->
+    <section id="about" class="border-t border-white/5 bg-ink-950">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">About HaulIntel</h2>
+        <p class="text-steel-400 mb-10">Built for company drivers and owner-operators who are tired of recruiter spin.</p>
+
+        <div class="prose-invert space-y-8 text-steel-300 leading-relaxed">
+          <div>
+            <h3 class="text-lg font-semibold text-white mb-2">What this is</h3>
+            <p class="text-sm sm:text-base">
+              HaulIntel is a free research tool for CDL drivers. You type a carrier name and get a briefing that covers the things that actually matter when you’re choosing a seat: whether the pay matches the promise, how often you get home, what the trucks look like, how dispatch treats you, safety/FMCSA signals, and what other drivers are saying right now.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-white mb-2">How it works</h3>
+            <ol class="list-decimal list-inside space-y-2 text-sm sm:text-base text-steel-300">
+              <li><strong class="text-white">Search</strong> — Enter a company name from the home page or Research section.</li>
+              <li><strong class="text-white">Briefing</strong> — Review structured notes on pay, home time, equipment, management, safety, and sentiment.</li>
+              <li><strong class="text-white">Chat</strong> — Ask follow-up questions in plain language (“Is the CPM after 2,500 miles?”).</li>
+            </ol>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-white mb-2">Demo vs. live</h3>
+            <p class="text-sm sm:text-base">
+              This site is a <strong class="text-amber-soft">working demo with high-quality sample data</strong>. It shows exactly how the product will feel. Live research powered by Grok — real-time synthesis of public records, reviews, and industry signals — is coming next. Nothing here is legal, employment, or financial advice. Always verify with the carrier, your contract, and official sources like SAFER/FMCSA.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-white mb-2">Who it’s for</h3>
+            <ul class="list-disc list-inside space-y-1.5 text-sm sm:text-base">
+              <li>Company drivers comparing fleets before orientation</li>
+              <li>Owner-operators checking brokers and lease-purchase programs</li>
+              <li>Anyone who’s been burned by “home weekly” that meant every 6 weeks</li>
+            </ul>
+          </div>
+
+          <div class="rounded-xl bg-ink-800/60 border border-white/5 p-5">
+            <h3 class="text-base font-semibold text-white mb-2">Roadmap</h3>
+            <ul class="text-sm space-y-1.5 text-steel-400">
+              <li>✓ Static demo (this site)</li>
+              <li>○ Live Grok-powered briefings via API</li>
+              <li>○ DOT / MC number lookup</li>
+              <li>○ Save &amp; compare carriers on your phone</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="border-t border-white/5 bg-ink-950">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
+        <div>
+          <a href="#home" class="inline-flex items-center gap-2 mb-3">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-ink-950 font-extrabold text-xs">HI</span>
+            <span class="font-bold text-white">Haul<span class="text-amber-glow">Intel</span></span>
+          </a>
+          <p class="text-sm text-steel-400 max-w-xs">Carrier research for drivers who do the work. Free. Direct. No recruiter filter.</p>
+        </div>
+        <div class="flex flex-wrap gap-x-8 gap-y-4 text-sm">
+          <div>
+            <p class="font-semibold text-white mb-2">Navigate</p>
+            <ul class="space-y-1.5 text-steel-400">
+              <li><a href="#home" class="hover:text-amber-soft transition-colors">Home</a></li>
+              <li><a href="#research" class="hover:text-amber-soft transition-colors">Research</a></li>
+              <li><a href="#chat" class="hover:text-amber-soft transition-colors">Ask AI</a></li>
+              <li><a href="#about" class="hover:text-amber-soft transition-colors">About</a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="font-semibold text-white mb-2">Product</p>
+            <ul class="space-y-1.5 text-steel-400">
+              <li><span class="text-steel-400">HaulIntel Demo</span></li>
+              <li><span class="text-steel-500">Also known as CarrierCheck AI</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="mt-10 pt-6 border-t border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-steel-500">
+        <p>© <span id="year"></span> HaulIntel. Demo only — not affiliated with any carrier. Not employment advice.</p>
+        <p>Built for CDL drivers · Dark mode by design</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
