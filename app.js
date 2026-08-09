@@ -1,9 +1,44 @@
 /**
- * HaulIntel — static demo app
- * Search, briefings, and chat all use local mock data (no API yet).
+ * HaulIntel — static site
+ * Live briefings/chat via Cloudflare Worker (XAI_API_KEY stays server-side).
+ * Falls back to local mock data if the API is offline or unset.
  */
 (function () {
   'use strict';
+
+  // ---------------------------------------------------------------------------
+  // API config — Worker URL only (NEVER put XAI_API_KEY in this file)
+  // After you deploy the Worker, set the URL below OR in localStorage key
+  // "haulintel_api" OR ?api=https://your-worker.workers.dev
+  // ---------------------------------------------------------------------------
+  const DEFAULT_API_BASE = ''; // e.g. 'https://haulintel-api.YOUR_SUBDOMAIN.workers.dev'
+  let API_BASE = resolveApiBase();
+  let lastResearchedCompany = '';
+  let chatHistory = [];
+  let liveApiOk = null; // null unknown, true/false after probe
+
+  function resolveApiBase() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = params.get('api');
+      if (fromQuery) {
+        localStorage.setItem('haulintel_api', fromQuery.replace(/\/$/, ''));
+        return fromQuery.replace(/\/$/, '');
+      }
+      const stored = localStorage.getItem('haulintel_api');
+      if (stored) return stored.replace(/\/$/, '');
+    } catch (_) {
+      /* ignore */
+    }
+    if (typeof window.HAULINTEL_API === 'string' && window.HAULINTEL_API) {
+      return window.HAULINTEL_API.replace(/\/$/, '');
+    }
+    return (DEFAULT_API_BASE || '').replace(/\/$/, '');
+  }
+
+  function isLiveConfigured() {
+    return Boolean(API_BASE);
+  }
 
   // ---------------------------------------------------------------------------
   // Mock company database (high-quality, realistic demo content)
@@ -503,6 +538,18 @@
       )
       .join('');
 
+    const isLive = Boolean(company.live);
+    const idNote = isLive ? '' : ' <span class="text-steel-600">(demo IDs)</span>';
+    const sourceBadge = isLive
+      ? '<span class="text-xs font-medium px-2 py-0.5 rounded-full badge-good">Live · Grok</span>'
+      : '<span class="text-xs font-medium px-2 py-0.5 rounded-full badge-avg">Demo sample</span>';
+    const footerNote = isLive
+      ? escapeHtml(
+          company.disclaimer ||
+            'AI-assisted briefing. Not legal or employment advice. Verify pay, contracts, and FMCSA/SAFER data independently.'
+        )
+      : 'Demo briefing for illustration only. Not legal or employment advice. Verify pay, contracts, and FMCSA/SAFER data independently.';
+
     researchResult.innerHTML = `
       <div class="rounded-2xl border border-white/10 bg-ink-900 shadow-card overflow-hidden">
         <!-- Header -->
@@ -514,9 +561,10 @@
                 <div class="flex flex-wrap items-center gap-2 mb-1">
                   <h3 class="text-xl sm:text-2xl font-bold text-white tracking-tight">${escapeHtml(company.displayName)}</h3>
                   <span class="text-xs font-medium px-2 py-0.5 rounded-full ${badgeClass(company.scoreClass)}">${escapeHtml(company.scoreLabel)}</span>
+                  ${sourceBadge}
                 </div>
                 <p class="text-sm text-steel-400 mb-2">${escapeHtml(company.type)} · ${escapeHtml(company.hq)}</p>
-                <p class="text-xs text-steel-500 font-mono">${escapeHtml(company.mc)} · ${escapeHtml(company.dot)} <span class="text-steel-600">(demo IDs)</span></p>
+                <p class="text-xs text-steel-500 font-mono">${escapeHtml(company.mc)} · ${escapeHtml(company.dot)}${idNote}</p>
               </div>
             </div>
           </div>
@@ -542,7 +590,7 @@
             <ul class="space-y-2">${tips}</ul>
           </div>
           <p class="mt-4 text-xs text-steel-500 leading-relaxed">
-            Demo briefing for illustration only. Not legal or employment advice. Verify pay, contracts, and FMCSA/SAFER data independently. Live Grok research coming soon.
+            ${footerNote}
           </p>
           <div class="mt-4 flex flex-wrap gap-2">
             <a href="#chat" class="inline-flex items-center gap-1.5 text-sm font-medium text-amber-soft hover:text-amber-400 transition-colors">
@@ -559,7 +607,51 @@
 
   let searchTimer = null;
 
-  function runSearch(rawQuery, { scroll = true } = {}) {
+  async function fetchLiveResearch(companyName) {
+    if (!isLiveConfigured()) return null;
+    const res = await fetch(API_BASE + '/api/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company: companyName }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.detail || 'Research request failed');
+    }
+    if (!data.briefing) throw new Error('No briefing in response');
+    liveApiOk = true;
+    return data.briefing;
+  }
+
+  async function fetchLiveChat(message, companyHint) {
+    if (!isLiveConfigured()) return null;
+    const res = await fetch(API_BASE + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        company: companyHint || lastResearchedCompany || '',
+        history: chatHistory.slice(-8),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.detail || 'Chat request failed');
+    }
+    liveApiOk = true;
+    return data.answer;
+  }
+
+  function runMockSearch(query) {
+    return new Promise((resolve) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        resolve(findCompany(query));
+      }, 650 + Math.random() * 400);
+    });
+  }
+
+  async function runSearch(rawQuery, { scroll = true } = {}) {
     const query = (rawQuery || '').trim();
     if (!query) {
       setResearchState('empty');
@@ -571,17 +663,36 @@
 
     setResearchState('loading');
     if (scroll) scrollToId('research');
+    lastResearchedCompany = query;
 
-    clearTimeout(searchTimer);
-    // Fake think time so the demo feels like a real briefing pull
-    searchTimer = setTimeout(() => {
-      const company = findCompany(query);
-      if (!company) {
-        setResearchState('notfound');
-        return;
+    // Prefer live Grok via Worker when configured
+    if (isLiveConfigured()) {
+      try {
+        const briefing = await fetchLiveResearch(query);
+        if (briefing) {
+          renderBriefing(briefing);
+          updateLiveChrome(true);
+          return;
+        }
+      } catch (err) {
+        console.warn('Live research failed, trying mock:', err);
+        liveApiOk = false;
+        // Fall through to mock
       }
-      renderBriefing(company);
-    }, 650 + Math.random() * 400);
+    }
+
+    const company = await runMockSearch(query);
+    if (!company) {
+      if (isLiveConfigured()) {
+        researchNotFound.innerHTML = `
+          <h3 class="text-lg font-semibold text-white mb-2">Could not complete briefing</h3>
+          <p class="text-sm text-steel-400 mb-4">Live API did not return a result and this name is not in the demo set. Check that the Worker is deployed and <code class="text-amber-soft">XAI_API_KEY</code> is set. You can still try a sample chip below.</p>
+        `;
+      }
+      setResearchState('notfound');
+      return;
+    }
+    renderBriefing(company);
   }
 
   // Forms
@@ -715,11 +826,12 @@
     return bestHits > 0 ? best.answer : DEFAULT_CHAT_ANSWER;
   }
 
-  function sendChat(question) {
+  async function sendChat(question) {
     const q = (question || '').trim();
     if (!q) return;
 
     appendMessage('user', q);
+    chatHistory.push({ role: 'user', content: q });
     if (chatInput) chatInput.value = '';
 
     // Hide suggestions after first real exchange beyond welcome
@@ -728,21 +840,39 @@
     }
 
     showTyping();
-    const delay = 700 + Math.random() * 600;
-    setTimeout(() => {
-      hideTyping();
-      appendMessage('bot', matchChatAnswer(q));
-    }, delay);
+
+    if (isLiveConfigured()) {
+      try {
+        const answer = await fetchLiveChat(q, lastResearchedCompany);
+        hideTyping();
+        if (answer) {
+          appendMessage('bot', answer);
+          chatHistory.push({ role: 'assistant', content: answer });
+          updateLiveChrome(true);
+          return;
+        }
+      } catch (err) {
+        console.warn('Live chat failed, using mock:', err);
+        liveApiOk = false;
+      }
+    }
+
+    const delay = 500 + Math.random() * 400;
+    await new Promise((r) => setTimeout(r, delay));
+    hideTyping();
+    const mock = matchChatAnswer(q);
+    appendMessage('bot', mock);
+    chatHistory.push({ role: 'assistant', content: mock });
   }
 
   function initChat() {
     if (!chatMessages) return;
 
-    appendMessage(
-      'bot',
-      'Hey — I’m the HaulIntel demo assistant. Ask me about the sample carriers, lease-purchase red flags, what to ask a recruiter, home time, or pay. Answers sound like a veteran driver who’s seen the paperwork. Live Grok is coming; right now this is sample smarts only.',
-      { animate: false }
-    );
+    const welcome = isLiveConfigured()
+      ? 'Hey — I’m HaulIntel. Live Grok is connected through the secure API proxy. Ask about any carrier, lease traps, recruiter questions, home time, or pay. If the API hiccups, I’ll fall back to sample answers.'
+      : 'Hey — I’m the HaulIntel demo assistant. Ask me about the sample carriers, lease-purchase red flags, what to ask a recruiter, home time, or pay. Live Grok turns on after the Cloudflare Worker is deployed and linked (see README).';
+
+    appendMessage('bot', welcome, { animate: false });
 
     if (chatSuggestions) {
       chatSuggestions.innerHTML = CHAT_SUGGESTIONS.map(
@@ -819,10 +949,35 @@
     }
   }
 
+  function updateLiveChrome(isLive) {
+    const banner = document.getElementById('demo-banner');
+    if (!banner) return;
+    if (isLive && isLiveConfigured()) {
+      banner.classList.remove('bg-amber-500/10', 'border-amber-500/25', 'text-amber-100/90');
+      banner.classList.add('bg-emerald-500/10', 'border-emerald-500/25', 'text-emerald-100/90');
+      banner.innerHTML =
+        '<span class="font-medium text-emerald-300">Live mode</span>' +
+        '<span class="hidden sm:inline"> — Grok-powered research via secure API proxy. Not legal advice.</span>' +
+        '<span class="sm:hidden"> — Grok connected.</span>' +
+        '<button type="button" id="dismiss-banner" class="ml-2 text-emerald-200/70 hover:text-emerald-100 underline text-xs" aria-label="Dismiss">Dismiss</button>';
+      document.getElementById('dismiss-banner')?.addEventListener('click', () => {
+        banner.classList.add('hidden');
+      });
+    }
+  }
+
   function initBanner() {
     const banner = document.getElementById('demo-banner');
     const btn = document.getElementById('dismiss-banner');
     if (!banner || !btn) return;
+
+    if (isLiveConfigured()) {
+      banner.innerHTML =
+        '<span class="font-medium text-amber-soft">API linked</span>' +
+        '<span class="hidden sm:inline"> — Worker URL set. First search will use live Grok (mock fallback if offline).</span>' +
+        '<span class="sm:hidden"> — Worker set · live on search.</span>' +
+        '<button type="button" id="dismiss-banner" class="ml-2 text-amber-200/70 hover:text-amber-100 underline text-xs" aria-label="Dismiss demo notice">Dismiss</button>';
+    }
 
     try {
       if (sessionStorage.getItem('haulintel-banner-dismissed') === '1') {
@@ -832,7 +987,7 @@
       /* private mode */
     }
 
-    btn.addEventListener('click', () => {
+    document.getElementById('dismiss-banner')?.addEventListener('click', () => {
       banner.classList.add('hidden');
       try {
         sessionStorage.setItem('haulintel-banner-dismissed', '1');

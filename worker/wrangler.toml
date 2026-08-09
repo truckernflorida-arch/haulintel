@@ -1,0 +1,10 @@
+name = "haulintel-api"
+main = "src/index.js"
+compatibility_date = "2026-04-01"
+
+# Set the secret after deploy (never put the key in this file):
+#   npx wrangler secret put XAI_API_KEY
+#
+# Optional: restrict which browser origins may call this Worker
+#   npx wrangler secret put ALLOWED_ORIGINS
+# Value example: https://truckernflorida-arch.github.io,http://localhost:8080

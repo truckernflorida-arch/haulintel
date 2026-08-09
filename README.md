@@ -141,7 +141,19 @@ Search any of those names, use the chips, or try `?q=Horizon%20Freight%20Lines` 
 
 ---
 
-## Upgrading later: live Grok API (Cloudflare Workers)
+## Live Grok / SpaceXAI API
+
+**Full step-by-step:** see **[SETUP-LIVE-API.md](./SETUP-LIVE-API.md)**.
+
+The browser **must not** hold a real API key. Use the included Cloudflare Worker proxy (`worker/`).
+
+Quick path:
+
+1. Create key at https://console.x.ai/team/default/api-keys (env name: `XAI_API_KEY`)
+2. Deploy Worker: `cd worker` → `npx wrangler deploy` → `npx wrangler secret put XAI_API_KEY`
+3. Set `DEFAULT_API_BASE` in `app.js` to your `*.workers.dev` URL and push
+
+### Upgrading / architecture notes
 
 The browser **must not** hold a real API key. Use a small backend proxy.
 
