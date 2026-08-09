@@ -11,7 +11,8 @@
   // After you deploy the Worker, set the URL below OR in localStorage key
   // "haulintel_api" OR ?api=https://your-worker.workers.dev
   // ---------------------------------------------------------------------------
-  const DEFAULT_API_BASE = 'https://haulintel-api.haulintel-tf.workers.dev';
+  // Live Grok proxy (Cloudflare Pages Functions). Never put XAI_API_KEY here.
+  const DEFAULT_API_BASE = 'https://haulintel.pages.dev';
   let API_BASE = resolveApiBase();
   let lastResearchedCompany = '';
   let chatHistory = [];
