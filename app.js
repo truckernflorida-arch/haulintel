@@ -5,7 +5,7 @@
  */
 (function () {
   'use strict';
-
+const WORKER_URL = "https://haulintel-api.truckinflorida.workers.dev";
   // ---------------------------------------------------------------------------
   // API config — Worker URL only (NEVER put XAI_API_KEY in this file)
   // After you deploy the Worker, set the URL below OR in localStorage key
